@@ -22,7 +22,7 @@ torch==2.2.1
 ## Usage
 The optimal parameters are provided in the appendix. Should take less than 1 second for each trial on gpu.
 ```
-python inter_laplace.py --dataset minst --label_num 1 --k_hop 4 --ridge 0.03
+python inter_laplace.py --dataset mnist --label_num 1 --k_hop 4 --ridge 0.03
 ```
 
 
