@@ -1,4 +1,4 @@
-# Inter-Laplace
+# Interface Laplace Learning
 This repository contains the code for [Interface Laplace Learning: Learnable Interface Term Helps Semi-Supervised Learning](https://arxiv.org/abs/2408.05419)
 
 ## Dependencies
