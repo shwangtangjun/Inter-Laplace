@@ -2,6 +2,8 @@ import numpy as np
 import scipy.sparse as sparse
 import torch
 from utils import sparse_mx_to_torch_sparse_tensor
+import torch.nn.functional as F
+from scipy.optimize import root_scalar
 
 
 def get_T(W, train_idx):
@@ -90,3 +92,16 @@ def get_A(W, train_idx, interface_idx, T, subtract_mean=True):
     A = torch.sparse.mm(A, D_inv)
     A = A[:, interface_idx]
     return A
+
+
+def get_lamda(A, train_labels, target_mse):
+    m = A.shape[0]
+    I = torch.eye(m, device='cuda')
+    train_labels = torch.LongTensor(train_labels).cuda()
+    Y = F.one_hot(train_labels).float()
+
+    lamda = root_scalar(lambda l: (torch.linalg.norm(
+        torch.linalg.solve(A @ A.T / l + m * I, Y)) ** 2 * m).item() - target_mse,
+                        bracket=[1e-6, 1000.0]).root
+
+    return lamda

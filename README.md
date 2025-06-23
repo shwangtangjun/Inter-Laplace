@@ -17,12 +17,12 @@ torch==2.2.1
 
 [utils.py](utils.py) includes utility functions.
 
-[preprocess.py](preprocess.py) includes the preprocess functions to get T, interface index and A.
+[preprocess.py](preprocess.py) includes the preprocess functions to get T, interface index, A and lambda.
 
 ## Usage
 The optimal parameters are provided in the appendix. Should take less than 1 second for each trial on gpu.
 ```
-python inter_laplace.py --dataset mnist --label_num 1 --k_hop 4 --ridge 0.03
+python inter_laplace.py --dataset mnist --label_num 1 --k_hop 4 --target_mse 0.20
 ```
 
 

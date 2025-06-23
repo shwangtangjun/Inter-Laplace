@@ -4,17 +4,17 @@ import torch
 import argparse
 import scipy.sparse as sparse
 from utils import sparse_mx_to_torch_sparse_tensor, weight_matrix, create_labeled_index
-from preprocess import get_T, get_interface_idx, get_A
+from preprocess import get_T, get_interface_idx, get_A, get_lamda
 import torch.nn.functional as F
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", type=str, choices=['mnist', 'fashionmnist', 'cifar', 'new_mnist'])
+parser.add_argument("--dataset", type=str, choices=['mnist', 'fashionmnist', 'cifar'])
 parser.add_argument("--trials", type=int, help='number of test trials', default=100)
 parser.add_argument("--label_num", type=int, default=1)
 parser.add_argument('--device', type=str, default='0')
 
-parser.add_argument("--ridge", help='lambda weighting factor before regularizer', type=float)
 parser.add_argument("--k_hop", help='remove how many k hops', type=int, default=0)
+parser.add_argument("--target_mse", help='target mse loss L_{mse}^*', type=float)
 parser.add_argument('--no_subtract_mean', default=False, action='store_true',
                     help='whether to enforce zero mean on each column of u, default is to remove')
 args = parser.parse_args()
@@ -25,14 +25,14 @@ os.environ["CUDA_VISIBLE_DEVICES"] = args.device  # specify which GPU(s) to be u
 subtract_mean = not args.no_subtract_mean
 
 
-def train(A, train_labels):
+def train(A, train_labels, lamda):
     m = len(train_labels)
     train_labels = torch.LongTensor(train_labels).cuda()
 
     I = torch.eye(m, device='cuda')
     Y = F.one_hot(train_labels).float()
 
-    f = A.T @ torch.linalg.solve(A @ A.T + m * args.ridge * I, Y)
+    f = A.T @ torch.linalg.solve(A @ A.T + m * lamda * I, Y)
     return f
 
 
@@ -76,13 +76,6 @@ def main():
 
         M = np.load("data/cifar_labels.npz", allow_pickle=True)
         labels = M['labels']
-    elif args.dataset == 'new_mnist':
-        M = np.load("data/new_MNIST_vae_knn.npz", allow_pickle=True)
-        J = M['J']
-        D = M['D']
-
-        M = np.load("data/new_MNIST_labels.npz", allow_pickle=True)
-        labels = M['labels']
     else:
         raise NotImplementedError
 
@@ -101,9 +94,10 @@ def main():
         T = get_T(W, train_idx)
         interface_idx = get_interface_idx(train_idx, all_idx, W, args.k_hop)
         A = get_A(W, train_idx, interface_idx, T, subtract_mean=subtract_mean)
+        lamda = get_lamda(A, train_labels, args.target_mse)
 
         # Training
-        f = train(A, train_labels)
+        f = train(A, train_labels, lamda)
         f_whole = torch.zeros([len(labels), 10], device='cuda')
         f_whole[interface_idx] = f
 
